@@ -15,7 +15,7 @@ It helps track spending by category and visualise monthly expenses in a clean, f
   - Health
   - Eating out
   - Holidays
-- Automatic spending summary
+
 - Category breakdown dashboard
 - Interactive bar chart (pink themed)
 - Dark mode UI (Revolut-inspired)
