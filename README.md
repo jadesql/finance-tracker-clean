@@ -1,7 +1,7 @@
 # 💸 Finance Tracker (Streamlit App)
 
 A simple personal finance dashboard built with Python, Streamlit, and SQLite.  
-It helps track spending by category and visualise monthly expenses in a clean, Revolut-style interface.
+It helps track spending by category and visualise monthly expenses in a clean, fintech bank style interface.
 
 ---
 
