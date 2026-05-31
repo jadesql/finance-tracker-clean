@@ -141,3 +141,12 @@ with col2:
     ax.set_facecolor("#0e0e10")
 
     st.pyplot(fig)
+    import streamlit as st
+
+st.title("Finance Tracker")
+
+amount = st.number_input("Amount")
+category = st.text_input("Category")
+
+if st.button("Add Entry"):
+    st.write("Saved:", amount, category)
