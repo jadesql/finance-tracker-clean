@@ -11,142 +11,61 @@ conn = sqlite3.connect("finance.db", check_same_thread=False)
 def load_data():
     return pd.read_sql("SELECT * FROM transactions", conn)
 
-# ----------------------------
-# LOAD DATA
-# ----------------------------
-df = load_data()
-
-# ----------------------------
-# CLEAN CATEGORIES
-# ----------------------------
-df["category"] = df["category"].astype(str).str.strip().str.lower()
-
-category_map = {
-    "food": "Food",
-    "fuel": "Fuel",
-    "shopping": "Shopping",
-    "health": "Health",
-    "eating out": "Eating out",
-    "eatingout": "Eating out",
-    "holidays": "Holidays",
-    "holiday": "Holidays"
-}
-
-df["category"] = df["category"].replace(category_map)
-
-# ONLY EXPENSES
-expenses = df[df["type"] == "expense"].copy()
-expenses["amount"] = expenses["amount"].abs()
+def insert_data(amount, category):
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO transactions (amount, type, category) VALUES (?, ?, ?)",
+        (amount, "expense", category)
+    )
+    conn.commit()
 
 # ----------------------------
 # PAGE CONFIG
 # ----------------------------
 st.set_page_config(page_title="Spending Dashboard", layout="wide")
 
-# ----------------------------
-# STYLE (DARK + PINK)
-# ----------------------------
-st.markdown(
-    """
-    <style>
-
-    .stApp {
-        background-color: #0e0e10;
-        color: white;
-    }
-
-    h1, h2, h3 {
-        color: #ff4da6;
-    }
-
-    div[data-testid="metric-container"] {
-        background-color: #1a1a1d;
-        border-radius: 12px;
-        padding: 15px;
-        box-shadow: 0px 0px 10px rgba(255, 77, 166, 0.2);
-    }
-
-    div[data-testid="stDataFrame"] {
-        border: 2px solid #ff4da6;
-        border-radius: 12px;
-        padding: 6px;
-    }
-
-    div[data-testid="stDataFrame"] * {
-        font-size: 18px !important;
-    }
-
-    thead tr th {
-        background-color: #ff4da6 !important;
-        color: white !important;
-        font-size: 18px !important;
-    }
-
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# ----------------------------
-# TITLE
-# ----------------------------
 st.title("💸 Monthly Spending Dashboard")
 
 # ----------------------------
-# TOTAL SPEND
+# INPUT SECTION (FIXED)
 # ----------------------------
-total_spend = expenses["amount"].sum()
+with st.form("entry_form"):
+    amount = st.number_input("Amount")
+    category = st.text_input("Category")
+    submitted = st.form_submit_button("Add Entry")
 
-st.metric("Total Spending", f"£{total_spend:,.2f}")
-
-# ----------------------------
-# CATEGORY TABLE
-# ----------------------------
-st.subheader("📊 Spending by Category")
-
-category_totals = expenses.groupby("category")["amount"].sum()
-
-category_df = category_totals.reset_index()
-category_df.columns = ["Category", "Spent (£)"]
-
-category_df["Spent (£)"] = category_df["Spent (£)"].apply(lambda x: f"£{x:,.2f}")
-
-st.dataframe(category_df, use_container_width=True)
+if submitted:
+    insert_data(amount, category)
+    st.success("Entry added!")
 
 # ----------------------------
-# CENTRED SMALL CHART (IMPORTANT FIX)
+# LOAD DATA (AFTER INSERT)
 # ----------------------------
-st.subheader("📈 Breakdown")
+df = load_data()
 
-col1, col2, col3 = st.columns([1, 2, 1])
+df["category"] = df["category"].astype(str).str.strip().str.lower()
 
-with col2:
+expenses = df[df["type"] == "expense"].copy()
+expenses["amount"] = expenses["amount"].abs()
 
-    fig, ax = plt.subplots(figsize=(4.5, 3))
+# ----------------------------
+# TOTAL
+# ----------------------------
+st.metric("Total Spending", f"£{expenses['amount'].sum():,.2f}")
 
-    ax.bar(
-        category_totals.index,
-        category_totals.values,
-        color="#ff4da6"
-    )
+# ----------------------------
+# TABLE
+# ----------------------------
+category_totals = expenses.groupby("category")["amount"].sum().reset_index()
+category_totals.columns = ["Category", "Spent (£)"]
 
-    ax.set_title("Spending Breakdown", fontsize=14, color="white")
-    ax.set_xlabel("Category", fontsize=10, color="white")
-    ax.set_ylabel("Amount (£)", fontsize=10, color="white")
+st.dataframe(category_totals, use_container_width=True)
 
-    ax.tick_params(axis='x', labelsize=9, colors="white", rotation=20)
-    ax.tick_params(axis='y', labelsize=9, colors="white")
+# ----------------------------
+# CHART
+# ----------------------------
+fig, ax = plt.subplots()
 
-    fig.patch.set_facecolor("#0e0e10")
-    ax.set_facecolor("#0e0e10")
+ax.bar(category_totals["Category"], category_totals["Spent (£)"])
 
-    st.pyplot(fig)
-    import streamlit as st
-
-st.title("Finance Tracker")
-
-amount = st.number_input("Amount")
-category = st.text_input("Category")
-
-if st.button("Add Entry"):
-    st.write("Saved:", amount, category)
+st.pyplot(fig)
